@@ -2,19 +2,46 @@ from datetime import datetime
 from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, AnyOf, URL
+from sqlalchemy import create_engine
 
 class ShowForm(Form):
-    artist_id = StringField(
-        'artist_id'
-    )
-    venue_id = StringField(
-        'venue_id'
-    )
+
+    artists = []
+    venues = []
+    #I really tried to avoid this but I kept going in circles...
+    engine = create_engine('postgresql://fyyredbuser:fyyredbpass@localhost:5432/fyyredb')
+    with engine.connect() as con:
+        artists = con.execute('SELECT id, name FROM "Artist" order by name asc')
+        con.close()
+    with engine.connect() as con:
+        venues = con.execute('SELECT id, name FROM "Venue" order by name asc')
+        con.close()
+
+    #artist_id = StringField(
+    #    'artist_id'
+    #)
+    artist_choices = []
+    for artist in artists:
+        artist_t = (artist.id, artist.name)
+        artist_choices.append(artist_t)
+    artist_id = SelectField('id', validators = [DataRequired()],choices = artist_choices)
+
+    #venue_id = StringField(
+    #    'venue_id'
+    #)
+    venue_choices = []
+    for venue in venues:
+        venue_t = (venue.id, venue.name)
+        venue_choices.append(venue_t)
+    venue_id = SelectField('id', validators = [DataRequired()],choices = venue_choices)
+
     start_time = DateTimeField(
         'start_time',
         validators=[DataRequired()],
         default= datetime.today()
     )
+
+    
 
 class VenueForm(Form):
     name = StringField(
@@ -110,6 +137,7 @@ class VenueForm(Form):
             ('Reggae', 'Reggae'),
             ('Rock n Roll', 'Rock n Roll'),
             ('Soul', 'Soul'),
+            ('Swing', 'Swing'),
             ('Other', 'Other'),
         ]
     )
@@ -196,7 +224,7 @@ class ArtistForm(Form):
         'phone'
     )
     image_link = StringField(
-        'image_link'
+        'image_link', validators=[URL()]
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],
