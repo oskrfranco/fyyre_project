@@ -100,6 +100,10 @@ def search_venues():
 def show_venue(venue_id):
 
   venue = Venue.query.get(venue_id)
+
+  if not venue:
+    return not_found_error('Venue not found.')
+
   today = datetime.now()
   upcoming_shows_query = Show.query.join(Artist).filter(Show.venue_id == venue.id).filter(Show.start_time > today).all()
   past_shows_query = Show.query.join(Artist).filter(Show.venue_id == venue.id).filter(Show.start_time < today).all()
@@ -256,6 +260,9 @@ def show_artist(artist_id):
 
   artist = Artist.query.get(artist_id)
 
+  if not artist:
+    return not_found_error('Artist not found.')
+
   today = datetime.now()
   upcoming_shows_query = Show.query.join(Venue).filter(Show.artist_id == artist.id).filter(Show.start_time > today).all()
   past_shows_query = Show.query.join(Venue).filter(Show.artist_id == artist.id).filter(Show.start_time < today).all()
@@ -307,6 +314,10 @@ def edit_artist(artist_id):
   form = ArtistForm()
   
   artist = Artist.query.filter_by(id = artist_id).first()
+
+  if not artist:
+    return not_found_error('Artist not found.')
+
   form = ArtistForm(
     name = artist.name,
     city = artist.city,
@@ -353,6 +364,10 @@ def edit_venue(venue_id):
   form = VenueForm()
 
   venue = Venue.query.get(venue_id)
+
+  if not venue:
+    return not_found_error('Venue not found.')
+
   form = VenueForm(
     name = venue.name,
     city = venue.city,
@@ -531,8 +546,8 @@ def create_show_submission():
   return render_template('pages/home.html')
 
 @app.errorhandler(404)
-def not_found_error(error):
-    return render_template('errors/404.html'), 404
+def not_found_error(error = ''):
+    return render_template('errors/404.html', error = error), 404
 
 @app.errorhandler(500)
 def server_error(error):
