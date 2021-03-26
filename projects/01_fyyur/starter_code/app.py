@@ -5,11 +5,23 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
+from flask import(
+  Flask, 
+  render_template, 
+  request, 
+  Response, 
+  flash, 
+  redirect, 
+  url_for, 
+  jsonify
+)
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-import logging
-from logging import Formatter, FileHandler
+#import logging
+from logging import (
+  Formatter, 
+  FileHandler
+)
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
@@ -159,57 +171,24 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-
   error = False
-
-  if 'seeking_talent' in request.form:
-    is_seeking_talent = True
-  else:
-    is_seeking_talent = False
-
-  seeking_talent_description = ''
-  if 'seeking_description' in request.form:
-    seeking_talent_description = request.form['seeking_description']
+  form = VenueForm(request.form)
 
   try:
-    venue_name = request.form['name']
-    city =            request.form['city']
-    state =           request.form['state']
-    address =         request.form['address']
-    phone =           request.form['phone']
-    genres =          ','.join(map(str, request.form.getlist('genres')))
-    facebook_link =   request.form['facebook_link']
-    image_link =      request.form['image_link']
-    website_link =    request.form['website_link']
-    seeking_talent =  is_seeking_talent
-    seeking_description = seeking_talent_description
-
-    venue = Venue(
-      name = venue_name,
-      city = city,
-      state = state,
-      address = address,
-      phone = phone,
-      genres = genres,
-      facebook_link = facebook_link,
-      image_link = image_link,
-      website = website_link,
-      seeking_talent = seeking_talent,
-      seeking_description = seeking_description
-    )
+    venue = Venue()
+    form.populate_obj(venue)
+    venue.genres = ','.join(map(str, request.form.getlist('genres'))) #Fix genres mapping
     db.session.add(venue)
     db.session.commit()
-
     flash('Venue ' + request.form['name'] + ' was successfully listed!')
-
-  except:
+  except ValueError as e:
     error = True
+    print(e)
     flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
     db.session.rollback()
-    print(sys.exc_info())
   finally:
     db.session.close()
-
+  
   if not error:
     return render_template('pages/home.html', data = Venue)
 
@@ -233,6 +212,7 @@ def delete_venue(venue_id):
     db.session.close()
 
   return render_template('pages/home.html', data = venue)
+
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -420,6 +400,28 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+  error = False
+  form = ArtistForm(request.form)
+  try:
+    artist = Artist()
+    form.populate_obj(artist)
+    artist.genres = ','.join(map(str, request.form.getlist('genres'))) #Fix genres mapping
+    db.session.add(artist)
+    db.session.commit()
+    flash('Artist ' + request.form['name'] + ' was successfully listed!')
+  except ValueError as e:
+    error = True
+    print(e)
+    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
+    db.session.rollback()
+  finally:
+    db.session.close()
+
+  if not error:
+    return render_template('pages/home.html', data = Artist)
+
+
+def create_artist_submission___():
 
   error = False
 
@@ -522,17 +524,10 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-
+  form = ShowForm()
   try:
-    form_venue_id = request.form.get('venue_id', '')
-    venue = Venue.query.filter_by(id = form_venue_id).first()
-    form_artist_id = request.form.get('artist_id', '')
-    artist = Artist.query.filter_by(id = form_artist_id).first()
-    show = Show(
-      show_artist = artist,
-      show_venue = venue,
-      start_time = request.form.get('start_time', '')
-    )
+    show = Show()
+    form.populate_obj(show)
     db.session.add(show)
     db.session.commit()
     flash('Show was successfully listed!')
@@ -552,6 +547,14 @@ def not_found_error(error = ''):
 @app.errorhandler(500)
 def server_error(error):
     return render_template('errors/500.html'), 500
+
+@app.errorhandler(400)
+def bad_request_error(error = 'Bad request...'):
+  return render_template('errors/404.html'), 400
+
+@app.errorhandler(405)
+def invalid_method_error(error = 'Invalid method...'):
+  return render_template('errors/404.html'), 405
 
 
 if not app.debug:
